@@ -1,6 +1,6 @@
 // UI wiring: screens, cover wall, player, progress.
 import { handleRedirect, isLoggedIn, login, logout, getToken } from './auth.js';
-import { playlistItems, albumTracks, shuffleOff, play } from './spotify.js';
+import { playlistItems, albumTracks, shuffleRepeatOff, play } from './spotify.js';
 import { initPlayer, sdk } from './player.js';
 import { total, toGlobal, locate, prevTarget, nextTarget, skip, fmt } from './timeline.js';
 import { playlistId, albumsFromItems, filterAlbums, findTrack } from './catalog.js';
@@ -23,6 +23,7 @@ let devicePromise = null;
 let current = null;
 let globalMs = 0, playing = false, stampedAt = 0, lastSave = 0, dragging = false;
 let retryFn = null;
+let opening = 0; // bumped by each album open and by ←; stale opens stop
 
 function show(id) {
   for (const s of document.querySelectorAll('main > section')) s.hidden = s.id !== id;
@@ -94,6 +95,7 @@ function saveProgress(ms = now(), done = false) {
 }
 
 async function openAlbum(a) {
+  const me = ++opening;
   sdk()?.activateElement(); // must run inside the click (browser autoplay rules)
   $('#cover').src = a.image;
   $('#title').textContent = a.name;
@@ -101,16 +103,18 @@ async function openAlbum(a) {
   show('player');
   try {
     const tracks = await albumTracks(a.id);
-    if ($('#player').hidden) return; // kid already went back to the wall
+    if (me !== opening) return; // kid went back or opened another album
     if (!tracks.length) throw new Error('unplayable');
     current = { album: a, tracks, durations: tracks.map(t => t.duration_ms), started: false, done: false };
     globalMs = load('progress', {})[a.id]?.ms ?? 0;
     playing = false;
     render();
     await playAt(globalMs);
+    if (me !== opening) return sdk()?.pause(); // ← pressed while play was in flight
     // After play: a fresh SDK device isn't active before its first play.
-    shuffleOff(await devicePromise).catch(console.error);
+    shuffleRepeatOff(await devicePromise).catch(console.error);
   } catch (e) {
+    if (me !== opening) return;
     current = null;
     show('wall');
     fail([403, 404].includes(e.status) ? new Error('unplayable') : e);
@@ -119,21 +123,28 @@ async function openAlbum(a) {
 
 async function playAt(ms) {
   const { index, offsetMs } = locate(current.durations, ms);
+  const uri = current.album.uri;
   current.started = false;
   current.done = false;
   const deviceId = await devicePromise;
   try {
-    await play(deviceId, current.album.uri, index, offsetMs);
+    await play(deviceId, uri, index, offsetMs);
   } catch (e) {
     if (e.status !== 404) throw e;
     // A just-registered SDK device can be "not found" for a moment: retry once.
     await new Promise(r => setTimeout(r, 1500));
-    await play(deviceId, current.album.uri, index, offsetMs);
+    await play(deviceId, uri, index, offsetMs);
   }
 }
 
 function onState(s) {
   if (!current || current.done) return;
+  if (!s) { // playback moved to another device: freeze the timeline
+    globalMs = now();
+    playing = false;
+    saveProgress(globalMs);
+    return render();
+  }
   const i = findTrack(current.tracks, s.track_window.current_track);
   if (i < 0) {
     if (current.started) complete(); // autoplay/radio moved past the album
@@ -209,10 +220,9 @@ $('#seek').oninput = () => { dragging = true; render(); };
 $('#seek').onchange = act(async () => { dragging = false; await seekTo(+$('#seek').value); });
 
 $('#back').onclick = () => {
-  if (current) {
-    if (playing) sdk().pause();
-    saveProgress();
-  }
+  opening++;
+  if (current) saveProgress();
+  sdk()?.pause().catch(console.error); // also stops a play that is still starting
   current = null;
   playing = false;
   renderWall();

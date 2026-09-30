@@ -30,8 +30,11 @@ async function allPages(path) {
 export const playlistItems = id => allPages(`/playlists/${id}/items?limit=50`);
 export const albumTracks = id => allPages(`/albums/${id}/tracks?limit=50`);
 
-export const shuffleOff = deviceId =>
-  api('PUT', `/me/player/shuffle?state=false&device_id=${deviceId}`);
+// Album order, no looping: the album must play straight through once.
+export const shuffleRepeatOff = deviceId => Promise.all([
+  api('PUT', `/me/player/shuffle?state=false&device_id=${deviceId}`),
+  api('PUT', `/me/player/repeat?state=off&device_id=${deviceId}`),
+]);
 
 export const play = (deviceId, contextUri, index, positionMs) =>
   api('PUT', `/me/player/play?device_id=${deviceId}`, {

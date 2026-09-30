@@ -17,7 +17,7 @@ export function initPlayer(getToken, onState) {
       player.addListener('initialization_error', () => reject(new Error('browser')));
       player.addListener('account_error', () => reject(new Error('premium')));
       player.addListener('authentication_error', () => reject(new Error('auth')));
-      player.addListener('player_state_changed', s => s && onState(s));
+      player.addListener('player_state_changed', onState); // null = moved to another device
       player.connect();
     };
     const script = document.createElement('script');
