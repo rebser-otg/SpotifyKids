@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SpotifyKids</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+<main>
+  <section id="login" hidden>
+    <button id="connect" class="big">Mit Spotify verbinden</button>
+  </section>
+
+  <section id="settings" hidden>
+    <h1>Einstellungen</h1>
+    <label>Playlist-Link
+      <input id="playlist" placeholder="https://open.spotify.com/playlist/…">
+    </label>
+    <p id="settings-msg" role="alert"></p>
+    <div class="row">
+      <button id="save">Speichern</button>
+      <button id="logout">Abmelden</button>
+    </div>
+  </section>
+
+  <section id="wall" hidden>
+    <header>
+      <input id="search" type="search" placeholder="🔍 Suchen" aria-label="Suchen">
+      <button id="gear" aria-label="Einstellungen (3 Sekunden halten)">⚙</button>
+    </header>
+    <div id="grid"></div>
+  </section>
+
+  <section id="player" hidden>
+    <button id="back" aria-label="Zurück">←</button>
+    <img id="cover" alt="">
+    <h1 id="title"></h1>
+    <input id="seek" type="range" min="0" max="0" step="1000" value="0" aria-label="Position">
+    <div class="times"><span id="elapsed">0:00</span><span id="remaining">−0:00</span></div>
+    <div class="controls">
+      <button id="prev" aria-label="Vorheriger Teil">⏮</button>
+      <button id="back30" aria-label="30 Sekunden zurück">⏪30</button>
+      <button id="toggle" class="big" aria-label="Abspielen oder Pause">▶</button>
+      <button id="fwd30" aria-label="30 Sekunden vor">30⏩</button>
+      <button id="next" aria-label="Nächster Teil">⏭</button>
+    </div>
+    <button id="restart">↺ Von vorne</button>
+  </section>
+</main>
+
+<div id="error" role="alert" hidden>
+  <p id="error-text"></p>
+  <div class="row">
+    <button id="retry">Nochmal</button>
+    <button id="error-ok">OK</button>
+  </div>
+</div>
+</body>
+</html>

@@ -1,7 +1,7 @@
 // Spotify login: Authorization Code + PKCE (no client secret).
 import { load, save } from './store.js';
 
-const CLIENT_ID = 'SET_IN_TASK_6';
+const CLIENT_ID = '8ab32b0b63b141ca9bf01fbd625285e2';
 const SCOPES = [
   'streaming', 'user-read-email', 'user-read-private',
   'user-read-playback-state', 'user-modify-playback-state',
